@@ -4,6 +4,8 @@ defmodule Words.Users do
   """
 
   import Ecto.Query, warn: false
+  import Ecto.Changeset
+
   alias Words.Repo
 
   alias Words.Users.{User, UserToken, UserNotifier}
@@ -24,6 +26,13 @@ defmodule Words.Users do
   """
   def get_user_by_email(email) when is_binary(email) do
     Repo.get_by(User, email: email)
+  end
+
+  @doc """
+  Searches a user by email using simple prefix search
+  """
+  def search_users_by_partial_email(partial_email) do
+    Repo.all(from u in User, where: like(u.email, ^"#{partial_email}%"))
   end
 
   @doc """
@@ -353,8 +362,36 @@ defmodule Words.Users do
 
   @doc """
   Gets the list of a user's friends.
+
   """
   def list_friends(%User{} = user) do
     Repo.all(Ecto.assoc(user, :friends))
+  end
+
+  @doc """
+  Adds a user to a user's friends.
+
+  """
+  def add_friend(%User{} = user, %User{} = friend) do
+    preloaded_user = Repo.get!(User, user.id) |> Repo.preload(:friends)
+
+    change(preloaded_user)
+    |> put_assoc(:friends, [friend | preloaded_user.friends])
+    |> Repo.update()
+  end
+
+  @doc """
+  Removes a user from a user's friends
+  """
+  def remove_friend(%User{} = user, %User{} = exfriend) do
+    preloaded_user = Repo.get!(User, user.id) |> Repo.preload(:friends)
+
+    change(preloaded_user)
+    |> put_assoc(
+      :friends,
+      preloaded_user.friends
+      |> Enum.reject(fn u -> u.id == exfriend.id end)
+    )
+    |> Repo.update()
   end
 end
