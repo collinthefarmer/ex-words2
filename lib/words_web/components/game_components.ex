@@ -19,7 +19,7 @@ defmodule WordsWeb.GameComponents do
     ~H"""
     <div>
       <%= for player <- @players do %>
-        <.player_card player={player}/>
+        <.player_card player={player} />
       <% end %>
     </div>
     """

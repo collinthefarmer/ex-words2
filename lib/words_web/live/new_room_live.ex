@@ -2,7 +2,7 @@ defmodule WordsWeb.NewRoomLive do
   use WordsWeb, :live_view
 
   def mount(params, session, socket) do
-    invite_options = []
+    invite_options = Words.Users.list_friends(socket.assigns.current_user)
 
     {
       :ok,

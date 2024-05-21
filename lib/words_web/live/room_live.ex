@@ -33,7 +33,7 @@ defmodule WordsWeb.RoomLive do
   attr :player_messages, :list, required: true
 
   def messages(assigns) do
-    msg_form = to_form(%{body: ""})
+    msg_form = to_form(%{"body" => ""})
     assigns = assigns |> assign(msg_form: msg_form)
 
     ~H"""

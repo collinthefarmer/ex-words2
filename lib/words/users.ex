@@ -350,4 +350,11 @@ defmodule Words.Users do
       {:error, :user, changeset, _} -> {:error, changeset}
     end
   end
+
+  @doc """
+  Gets the list of a user's friends.
+  """
+  def list_friends(%User{} = user) do
+    Repo.all(Ecto.assoc(user, :friends))
+  end
 end

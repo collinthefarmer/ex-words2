@@ -1,4 +1,7 @@
 defmodule Words.Users.User do
+  alias Words.Users.User
+  alias Words.Users.Friend
+
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -7,6 +10,10 @@ defmodule Words.Users.User do
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :naive_datetime
+    
+    many_to_many :friends, User, join_through: Friend, join_keys: [id1: :id, id2: :id]
+    many_to_many :friends_of, User, join_through: Friend, join_keys: [id2: :id, id1: :id]   
+
 
     timestamps(type: :utc_datetime)
   end
