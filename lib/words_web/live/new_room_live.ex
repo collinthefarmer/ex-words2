@@ -1,7 +1,7 @@
 defmodule WordsWeb.NewRoomLive do
   use WordsWeb, :live_view
 
-  def mount(params, session, socket) do
+  def mount(_params, _session, socket) do
     invite_options = Words.Users.list_friends(socket.assigns.current_user)
 
     {
@@ -16,8 +16,9 @@ defmodule WordsWeb.NewRoomLive do
     ~H"""
     <div>
       <%= for user <- @invite_options do %>
-        <div phx-value-user_id={user.id} phx-click="toggle_user">
-          invite?: <WordsWeb.RoomComponents.user_card user={user} />
+        <div>
+          <WordsWeb.RoomComponents.user_card user={user} />
+          <button phx-value-user_id={user.id} phx-click="toggle_user">invite</button>
         </div>
       <% end %>
     </div>
@@ -26,33 +27,41 @@ defmodule WordsWeb.NewRoomLive do
   end
 
   def handle_event("toggle_user", %{"user_id" => user_id}, socket) do
-    {:noreply,
-     assign(
-       socket,
-       :selected_users,
-       cond do
-         user_id in socket.assigns.selected_users ->
-           socket.assigns.selected_users
-           |> Enum.reject(&(&1 == user_id))
-
-         true ->
-           socket.assigns.selected_users ++ [user_id]
-       end
-     )}
+    {
+      :noreply,
+      assign(
+        socket,
+        :selected_users,
+        toggle_user_in_selected(user_id, socket.assigns)
+      )
+    }
   end
 
-  def handle_event("launch_room", _params, socket) do
-    players = [
-      socket.assigns.current_user
-      | socket.assigns.invite_options
-        |> Enum.filter(fn u -> u.id in socket.assigns.selected_users end)
-    ]
-
-    with {:ok, room} <- Words.Room.create_room(players) do
-      # ... push notifications to all users selected         
-      {:noreply, push_navigate(socket, to: ~p"/rooms/#{room.id}")}
-    else
+  def handle_event("launch_room", _, socket) do
+    case launch_room(parse_players(socket.assigns)) do
+      {:ok, room} -> {:noreply, push_navigate(socket, to: ~p"/rooms/#{room.id}")}
       _ -> {:noreply, socket}
     end
+  end
+
+  def parse_players(assigns) do
+    (assigns.selected_users
+     |> Enum.map(fn user_id -> Words.Users.get_user!(user_id) end)) ++
+      [assigns.current_user]
+  end
+
+  def toggle_user_in_selected(user_id, assigns) do
+    cond do
+      user_id in assigns.selected_users ->
+        assigns.selected_users
+        |> Enum.reject(&(&1 == user_id))
+
+      true ->
+        assigns.selected_users ++ [user_id]
+    end
+  end
+
+  def launch_room(players) do
+    Words.Room.create_room(players)
   end
 end

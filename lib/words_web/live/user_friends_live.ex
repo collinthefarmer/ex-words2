@@ -50,13 +50,26 @@ defmodule WordsWeb.UserFriendsLive do
   end
 
   def handle_event("add_friend", %{"user_id" => user_id}, socket) do
-    Words.Users.add_friend(socket.assigns.current_user, Words.Users.get_user!(user_id))
-    {:noreply, socket}
+    user = Words.Users.get_user!(user_id)
+
+    {:ok, _} =
+      Words.Users.add_friend(
+        socket.assigns.current_user,
+        user
+      )
+
+    {:noreply,
+     socket
+     |> assign(:friends, [user | socket.assigns.friends])}
   end
 
   def handle_event("remove_friend", %{"user_id" => user_id}, socket) do
-    Words.Users.remove_friend(socket.assigns.current_user, Words.Users.get_user!(user_id))
-    {:noreply, socket}
+    user = Words.Users.get_user!(user_id)
+    Words.Users.remove_friend(socket.assigns.current_user, user)
+
+    {:noreply,
+     socket
+     |> assign(:friends, socket.assigns.friends |> Enum.reject(fn u -> u.id == user.id end))}
   end
 
   def handle_event("search_users", %{"email" => email}, socket) do

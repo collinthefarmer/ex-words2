@@ -14,48 +14,41 @@ defmodule WordsWeb.RoomLive do
         room.players
         |> Enum.find(fn p -> p.user_id == socket.assigns.current_user.id end)
       )
-      |> assign(:players, room.players)
-      |> assign(:player_messages, room.messages)
+      |> assign(
+        :new_messages,
+        []
+      )
     }
   end
 
   def render(assigns) do
     ~H"""
     <div>
-      <WordsWeb.GameComponents.players players={@players} />
-      <.messages player_messages={@player_messages} />
-      <.board />
+      <WordsWeb.GameComponents.players players={@room.players} turn={@room.turn_position}/>
+      <WordsWeb.GameComponents.message_feed player_messages={@room.messages ++ @new_messages} />
+      <.message_input/>
+      <WordsWeb.GameComponents.game_board board={@room.board} />
       <.inventory />
     </div>
     """
   end
 
-  attr :player_messages, :list, required: true
-
-  def messages(assigns) do
+  def message_input(assigns) do
     msg_form = to_form(%{"body" => ""})
     assigns = assigns |> assign(msg_form: msg_form)
-
     ~H"""
-    <div>
-      <div>
-        <%= for msg <- @player_messages do %>
-          <p><%= msg.body %></p>
-        <% end %>
-      </div>
-      <.form for={@msg_form} phx-submit="send_message">
-        <.input field={@msg_form["body"]} />
-        <button>send!</button>
-      </.form>
-    </div>
+    <.form for={@msg_form} phx-submit="send_message">
+      <.input field={@msg_form["body"]} />
+      <button>send!</button>
+    </.form>
     """
   end
-
+ 
   def handle_event("send_message", %{"body" => body}, socket) do
     Words.Room.send_message(
       body,
       socket.assigns.room,
-      socket.assigns.player
+      socket.assigns.current_player
     )
 
     {:noreply, socket}
@@ -65,15 +58,9 @@ defmodule WordsWeb.RoomLive do
     {:noreply,
      assign(
        socket,
-       :player_messages,
-       socket.assigns.player_messages ++ [payload]
+       :new_messages,
+       socket.assigns.new_messages ++ [payload]
      )}
-  end
-
-  def board(assigns) do
-    ~H"""
-    <div>board!</div>
-    """
   end
 
   def inventory(assigns) do

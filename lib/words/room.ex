@@ -13,8 +13,12 @@ defmodule Words.Room do
   alias Words.Game.Slot
 
   def get_room!(id) do
-    Repo.get!(Room, id) |> Repo.preload(:players) |> Repo.preload(:messages)
+    Repo.get!(Room, id) 
+      |> Repo.preload([players: [:user]]) 
+      |> Repo.preload([messages: [from: [:user]]])
+      |> Repo.preload(:board)
   end
+
 
   def create_room(player_users) do
     change(%Room{})
@@ -74,7 +78,11 @@ defmodule Words.Room do
       })
 
     case msg |> Repo.insert() do
-      {:ok, result} -> broadcast_room_event(room, :player_message, result)
+      {:ok, result} -> broadcast_room_event(
+        room,
+        :player_message,
+        Repo.get!(Message, result.id) |> Repo.preload([from: [:user]])
+    )
       _ -> nil
     end
   end
